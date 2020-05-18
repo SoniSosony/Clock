@@ -1,2 +1,5 @@
-﻿  AlarmClock.cpp
+﻿  AlarmClockPanel.cpp
+  clockApp.cpp
+  clockMain.cpp
+  Generating Code...
   Clock.vcxproj -> E:\Projects\C++\Clock\Clock\Debug\Clock.exe

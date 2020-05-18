@@ -1,7 +1,11 @@
 #pragma once
 
+#include <list>
 #include "wx/wx.h"
+#include <wx/listctrl.h>
 #include "ClockDlg.h"
+#include "AlarmClock.h"
+#include "AlarmClockPanel.h"
 
 class clockMain : public wxFrame
 {
@@ -9,11 +13,11 @@ public:
 	clockMain();
 	~clockMain();
 
-public:
-	wxButton *m_btn1 = nullptr;
-	wxTextCtrl *m_txt1 = nullptr;
-	wxListBox *m_list1 = nullptr;
+	wxButton *btn_SetAlarm = nullptr;
 	ClockDlg *w_clock = nullptr;
+	wxTimer *WxTimer1 = nullptr;
+	wxListBox *l_AlarmList = nullptr;
+	std::list<AlarmClock*> AlarmClockList;
 
 	void WxTimer1Timer(wxTimerEvent& event);
 	void OnButtonClicked(wxCommandEvent &evt);
@@ -21,6 +25,7 @@ public:
 	wxDECLARE_EVENT_TABLE();
 
 private:
-	wxTimer *WxTimer1;
+
+	void AddAlarm();
 };
 

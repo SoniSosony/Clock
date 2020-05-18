@@ -27,6 +27,9 @@
     <ClCompile Include="AlarmClock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AlarmClockPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clockApp.h">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AlarmClock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AlarmClockPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -10,14 +10,20 @@ wxEND_EVENT_TABLE()
 clockMain::clockMain() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50), wxSize(800, 600))
 {
 	wxPanel *panel = new wxPanel(this, -1);
-	wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *boxSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxPanel *clockPanel = new wxPanel(panel);
 	w_clock = new ClockDlg(clockPanel);
-	wxButton *ok = new wxButton(panel, -1, wxT("Ok"));
 	boxSizer->Add(clockPanel);
-	boxSizer->Add(ok);
 	//boxSizer->Add(w_clock, 1, wxEXPAND | wxALL, 20);
 	w_clock->Show(true);
+
+	wxBoxSizer *AlarmBoxSizer = new wxBoxSizer(wxVERTICAL);
+	btn_SetAlarm = new wxButton(panel, 10001, wxT("Set alarm"));
+	l_AlarmList = new wxListBox(panel, 10003, wxPoint(0, 0), wxSize(300, 400), 0, NULL, 0, wxDefaultValidator, wxString("Alarms"));
+	l_AlarmList->Append(wxString("Hello"));
+	AlarmBoxSizer->Add(l_AlarmList);
+	AlarmBoxSizer->Add(btn_SetAlarm);
+	boxSizer->Add(AlarmBoxSizer);
 
 	WxTimer1 = new wxTimer();
 	WxTimer1->SetOwner(this, 10002);
@@ -37,6 +43,7 @@ void clockMain::WxTimer1Timer(wxTimerEvent & event)
 
 void clockMain::OnButtonClicked(wxCommandEvent & evt)
 {
-	m_list1->AppendString(m_txt1->GetValue());
+	AlarmClockPanel *AlarmPanel = new AlarmClockPanel();
+	AlarmPanel->Show();
 	evt.Skip();
 }
