@@ -4,11 +4,17 @@
 #include <wx/timectrl.h>
 #include <wx/calctrl.h>
 #include <wx/choice.h>
+#include <vector>
+#include "AlarmClock.h"
+#include "clockMain.h"
+
+class clockMain;
 
 class AlarmClockPanel : public wxFrame
 {
 public:
-	AlarmClockPanel();
+	AlarmClockPanel(clockMain &);
+	AlarmClockPanel(clockMain &, AlarmClock &alram);
 	~AlarmClockPanel();
 
 	wxTextCtrl *txc_AlarmName = nullptr;
@@ -17,11 +23,15 @@ public:
 	wxCalendarCtrl *cc_DatePicker = nullptr;
 	wxChoice *ch_AlarmType = nullptr;
 
-	wxArrayString AlarmTypes;
-
 	void OnButtonClicked(wxCommandEvent &evt);
 
 	wxDECLARE_EVENT_TABLE();
+
+private:
+	wxArrayString AlarmTypes;
+	clockMain *MainWindow;
+	std::vector<AlarmClock*> AlarmClockList;
+
 
 };
 

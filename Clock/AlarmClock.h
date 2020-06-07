@@ -3,29 +3,33 @@
 
 class AlarmClock
 {
-
-private:
-	enum E_AlarmType
-	{
-		single,
-		everyday,
-		weekdays,
-		weekend
-	};
-
-	E_AlarmType AlarmType;
-	wxDateTime AlarmDateTime;
-	bool RepeatAlarm(E_AlarmType AlarmType);
-
-
 public:
 	AlarmClock();
-	AlarmClock(wxDateTime date, E_AlarmType AlarmType);
 	~AlarmClock();
 
-	bool alarmDelay(int min);
+	wxDateTime GetAlarmAbsoluteTime();
+	wxDateTime GetAlarmAbsoluteDate();
+	wxString GetAlarmTime();
+	wxString GetAlarmName();
+	int GetAlarmType() const;
+	bool IsAlarmDeactivate();
 	bool IsAlarm();
-	void chooseMelody();
+	bool IsUnuseful();
+	void SetAlarmParams(wxString AlarmName, wxDateTime AlarmTime, wxDateTime AlarmDate, int AlarmType);
+	void OnAlarm();
+	void OffAlarm();
+	void DeactivateAlarm(bool deactivate);
+	bool IsWasAlarmedToday();
+	void DelayAlarmTime(int Delay);
 
+private:
+	wxString AlarmName;
+	wxDateTime AlarmTime;
+	wxDateTime AlarmDate;
+	int AlarmType;
+	bool AlarmDeactivated;
+	bool WasAlarmedToday;
+
+	
 };
 

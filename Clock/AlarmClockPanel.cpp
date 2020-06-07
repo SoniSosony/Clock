@@ -4,7 +4,7 @@ wxBEGIN_EVENT_TABLE(AlarmClockPanel, wxFrame)
 	EVT_BUTTON(10004, OnButtonClicked)
 wxEND_EVENT_TABLE()
 
-AlarmClockPanel::AlarmClockPanel() : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint(40, 50), wxSize(600, 200))
+AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint(40, 50), wxSize(600, 200))
 {
 	wxPanel *panel = new wxPanel(this, -1);
 	wxBoxSizer *BoxSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -12,6 +12,7 @@ AlarmClockPanel::AlarmClockPanel() : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint
 
 	txc_AlarmName = new wxTextCtrl(panel, 10001, wxEmptyString, wxPoint(10,10), wxSize(88, 22), 0, 
 		wxDefaultValidator, wxString("Alarm name"));
+	txc_AlarmName->SetValue(wxString("Alarm1"));
 
 	AlarmTypes.Add(wxString("Single"), 1);
 	AlarmTypes.Add(wxString("Everyday"), 1);
@@ -19,6 +20,7 @@ AlarmClockPanel::AlarmClockPanel() : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint
 	AlarmTypes.Add(wxString("Weekend"), 1);
 	ch_AlarmType = new wxChoice(panel, 10002, wxPoint(0, 0), wxSize(88, 22), AlarmTypes, 0,
 		wxDefaultValidator, wxString("AlarmTypes"));
+	ch_AlarmType->SetSelection(0);
 
 	tpc_TimePicker = new wxTimePickerCtrl(panel, 10003, wxDefaultDateTime, wxPoint(0, 0), wxSize(88, 22),
 		wxTP_DEFAULT, wxDefaultValidator, wxString("Alarm time"));
@@ -43,13 +45,62 @@ AlarmClockPanel::AlarmClockPanel() : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint
 	BoxSizer->Add(cc_DatePicker);
 
 	panel->SetSizer(BoxSizer);
+
+	this->MainWindow = &MainWindow;
+}
+
+AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow, AlarmClock &alarm)
+	: AlarmClockPanel(MainWindow)
+{
+	txc_AlarmName->SetValue(alarm.GetAlarmName());
+
+	wxDateTime DateTime = wxDateTime::Now();
+	wxDateTime DateDate = wxDateTime::Today();
+
+	DateDate.SetYear(alarm.GetAlarmAbsoluteDate().GetYear());
+	DateDate.SetMonth(alarm.GetAlarmAbsoluteDate().GetMonth());
+	DateDate.SetDay(alarm.GetAlarmAbsoluteDate().GetDay());
+	DateTime.SetHour(alarm.GetAlarmAbsoluteTime().GetHour());
+	DateTime.SetMinute(alarm.GetAlarmAbsoluteTime().GetMinute());
+
+	tpc_TimePicker->SetValue(DateTime);
+	cc_DatePicker->SetDate(DateDate.GetDateOnly());
+	ch_AlarmType->SetSelection(alarm.GetAlarmType());
 }
 
 AlarmClockPanel::~AlarmClockPanel()
 {
-
+	MainWindow->Enable();
+	MainWindow->SetFocus();
 }
 
 void AlarmClockPanel::OnButtonClicked(wxCommandEvent & evt)
 {
+
+	bool TimeIsTaken = false;
+
+	this->AlarmClockList = MainWindow->GetAlarmClockList();
+
+	for (size_t i = 0; i < this->AlarmClockList.size(); i++)
+	{
+		wxDateTime AlarmTime = tpc_TimePicker->GetValue();
+		wxDateTime AlarmTimeIsUse = AlarmClockList.at(i)->GetAlarmAbsoluteTime();
+		if (AlarmTime == AlarmTimeIsUse)
+			TimeIsTaken = true;
+	}
+
+	if (!TimeIsTaken) {
+		wxString AlarmName = txc_AlarmName->GetLineText(0);
+		wxDateTime AlarmTime = tpc_TimePicker->GetValue();
+		wxDateTime AlarmDate = cc_DatePicker->GetDate();
+		int AlarmType = ch_AlarmType->GetSelection();
+
+		AlarmClock *alarm = new AlarmClock();
+		alarm->SetAlarmParams(AlarmName, AlarmTime, AlarmDate, AlarmType);
+		MainWindow->AddToAlarmClockList(*alarm);
+
+		MainWindow->UpdateListBox();
+		this->Destroy();
+	}
+
 }
