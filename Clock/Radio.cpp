@@ -1,105 +1,263 @@
 #include "Radio.h"
 #include "bass.h"
-
+#include <windows.h>
+#include <process.h>
+#include <stdio.h>
 
 #define BASS_SYNC_HLS_SEGMENT	0x10300
 #define BASS_TAG_HLS_EXTINF		0x14000
 
-HWND win = NULL;
+wxBEGIN_EVENT_TABLE(Radio, wxFrame)
+	EVT_BUTTON(10006, ChooseRadioStation)
+	EVT_BUTTON(10007, PauseStation)
+	EVT_BUTTON(10009, AddRadioStation)
+	EVT_BUTTON(10010, RemoveRadioStation)
+	EVT_SLIDER(10008, ChangeValime)
+wxEND_EVENT_TABLE()
+
 CRITICAL_SECTION lock;
-DWORD req = 0;
-HSTREAM chan;
 
-Radio::Radio() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50), wxSize(800, 600))
+Radio::Radio() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50), wxSize(725, 245))
 {
+	std::vector<std::string> Urls = {
+		"http://stream-dc1.radioparadise.com/rp_192m.ogg",
+		"http://network.absoluteradio.co.uk/core/audio/mp3/live.pls?service=a8bb", "http://network.absoluteradio.co.uk/core/audio/aacplus/live.pls?service=a8",
+		"http://somafm.com/secretagent.pls", "http://somafm.com/secretagent32.pls",
+		"http://somafm.com/suburbsofgoa.pls", "http://somafm.com/suburbsofgoa32.pls",
+		"http://ai-radio.org/256.ogg", "http://ai-radio.org/48.aacp"
+	};
+	
 
+	panel = new wxPanel(this, -1);
+	wxBoxSizer *boxSizer = new wxBoxSizer(wxHORIZONTAL);
+	VBoxSizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *BtnVBoxSizer = new wxBoxSizer(wxHORIZONTAL);
+	wxBoxSizer *HBoxSizer = new wxBoxSizer(wxHORIZONTAL);
+	tct_SongName = new wxTextCtrl(panel, 10002, wxEmptyString, wxPoint(0, 0), wxSize(400, 20), 0,
+		wxDefaultValidator, wxString("SongName"));
+	tct_IcyName = new wxTextCtrl(panel, 10003, wxEmptyString, wxPoint(0, 0), wxSize(400, 20), 0,
+		wxDefaultValidator, wxString("IcyName"));
+	tct_IcyUrl = new wxTextCtrl(panel, 10004, wxEmptyString, wxPoint(0, 0), wxSize(400, 20), 0,
+		wxDefaultValidator, wxString("IcyUrl"));
+	l_StationList = new wxListBox(panel, 10005, wxPoint(0, 0), wxSize(300, 200), 0, NULL, 0,
+		wxDefaultValidator, wxString("StationList"));
+	
+	btn_ChooseStation = new wxButton(panel, 10006, wxT("Choose station"));
+	btn_Pause = new wxButton(panel, 10007, wxT("Pause"));
+	btn_AddStation = new wxButton(panel, 10009, wxT("Add station"));
+	btn_RemoveStation = new wxButton(panel, 10010, wxT("Remove station"));
+	sl_VolumeLevel = new wxSlider(panel, 10008, 4, 0, 100, wxPoint(0, 0), wxSize(250, 30), wxSL_HORIZONTAL,
+		wxDefaultValidator, wxString("Volume"));
+
+	BtnVBoxSizer->Add(btn_ChooseStation);
+	BtnVBoxSizer->Add(btn_Pause);
+	BtnVBoxSizer->Add(btn_AddStation);
+	BtnVBoxSizer->Add(btn_RemoveStation);
+
+	VBoxSizer->AddSpacer(5);
+	VBoxSizer->Add(tct_SongName);
+	VBoxSizer->Add(tct_IcyName);
+	VBoxSizer->Add(tct_IcyUrl);
+	VBoxSizer->AddSpacer(10);
+	VBoxSizer->Add(BtnVBoxSizer);
+	VBoxSizer->Add(sl_VolumeLevel);
+	boxSizer->AddSpacer(5);
+	boxSizer->Add(VBoxSizer);
+	boxSizer->Add(l_StationList);
+
+	panel->SetSizer(boxSizer);
+
+	for (size_t i = 0; i < Urls.size(); i++)
+	{
+		AddUrlToStationList(Urls.at(i));
+	}
+
+	if (l_StationList->GetCount() > 0) {
+		l_StationList->SetSelection(0);
+		IsRadioBoxEmpty = false;
+	}
+	else
+	{
+		IsRadioBoxEmpty = true;
+	}
+	InitializeCriticalSection(&lock);
+	IsPaused = false;
 }
 
 Radio::~Radio()
 {
+	BASS_Stop();
 }
 
-#define MESS(id,m,w,l) SendDlgItemMessage(win,id,m,(WPARAM)(w),(LPARAM)(l))
-
-void Error(const char *es)
+void Radio::DoMeta()
 {
-	char mes[200];
-	sprintf(mes, "%s\n(error code: %d)", es, BASS_ErrorGetCode());
-	MessageBox(win, (LPCWSTR)mes, 0, 0);
-}
+	tct_IcyUrl->Clear();
+	tct_IcyName->Clear();
+	tct_SongName->Clear();
 
-const char *urls[10] = {
-	"http://stream-dc1.radioparadise.com/rp_192m.ogg", "http://www.radioparadise.com/m3u/mp3-32.m3u",
-	"http://network.absoluteradio.co.uk/core/audio/mp3/live.pls?service=a8bb", "http://network.absoluteradio.co.uk/core/audio/aacplus/live.pls?service=a8",
-	"http://somafm.com/secretagent.pls", "http://somafm.com/secretagent32.pls",
-	"http://somafm.com/suburbsofgoa.pls", "http://somafm.com/suburbsofgoa32.pls",
-	"http://ai-radio.org/256.ogg", "http://ai-radio.org/48.aacp"
-};
-
-void CALLBACK MetaSync(HSYNC handle, DWORD channel, DWORD data, void *user)
-{
-	//DoMeta();
-}
-
-void CALLBACK StallSync(HSYNC handle, DWORD channel, DWORD data, void *user)
-{
-	if (!data) // stalled
-		SetTimer(win, 0, 50, 0); // start buffer monitoring
-}
-
-void CALLBACK EndSync(HSYNC handle, DWORD channel, DWORD data, void *user)
-{
-	KillTimer(win, 0); // stop buffer monitoring
-	MESS(31, WM_SETTEXT, 0, "not playing");
-	MESS(30, WM_SETTEXT, 0, "");
-	MESS(32, WM_SETTEXT, 0, "");
-}
-
-void CALLBACK StatusProc(const void *buffer, DWORD length, void *user)
-{
-	if (buffer && !length && (DWORD)user == req) // got HTTP/ICY tags, and this is still the current request
-		MESS(32, WM_SETTEXT, 0, buffer); // display status
-}
-
-void __cdecl OpenURL(void *url)
-{
-	DWORD c, r;
-	EnterCriticalSection(&lock); // make sure only 1 thread at a time can do the following
-	r = ++req; // increment the request counter for this request
-	LeaveCriticalSection(&lock);
-	KillTimer(win, 0); // stop buffer monitoring
-	BASS_StreamFree(chan); // close old stream
-	c = BASS_StreamCreateURL((char *)url, 0, BASS_STREAM_BLOCK | BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, StatusProc, (void*)r); // open URL
-	free(url); // free temp URL buffer
-	EnterCriticalSection(&lock);
-	if (r != req) { // there is a newer request, discard this stream
-		LeaveCriticalSection(&lock);
-		if (c) BASS_StreamFree(c);
-		return;
+	// get the broadcast name and URL
+	const char *icy = BASS_ChannelGetTags(chan, BASS_TAG_ICY);
+	if (!icy) icy = BASS_ChannelGetTags(chan, BASS_TAG_HTTP); // no ICY tags, try HTTP
+	if (icy) {
+		for (; *icy; icy += strlen(icy) + 1) {
+			if (!_strnicmp(icy, "icy-name:", 9))
+				tct_IcyName->WriteText(icy + 9);
+			if (!_strnicmp(icy, "icy-url:", 8))
+				tct_IcyUrl->WriteText(icy + 8);
+		}
 	}
-	chan = c; // this is now the current stream
-	LeaveCriticalSection(&lock);
-	if (!chan) { // failed to open
-		MESS(31, WM_SETTEXT, 0, "not playing");
-		Error("Can't play the stream");
+
+	const char *meta = BASS_ChannelGetTags(chan, BASS_TAG_META);
+	if (meta) { // got Shoutcast metadata
+		const char *p = strstr(meta, "StreamTitle='"); // locate the title
+		if (p) {
+			const char *p2 = strstr(p, "';"); // locate the end of it
+			if (p2) {
+				char *t = _strdup(p + 13);
+				t[p2 - (p + 13)] = 0;
+				tct_SongName->WriteText(t);
+				free(t);
+			}
+		}
 	}
 	else {
-		// start buffer monitoring
-		SetTimer(win, 0, 50, 0);
-		// set syncs for stream title updates
-		BASS_ChannelSetSync(chan, BASS_SYNC_META, 0, MetaSync, 0); // Shoutcast
-		BASS_ChannelSetSync(chan, BASS_SYNC_OGG_CHANGE, 0, MetaSync, 0); // Icecast/OGG
-		BASS_ChannelSetSync(chan, BASS_SYNC_HLS_SEGMENT, 0, MetaSync, 0); // HLS
-		// set sync for stalling/buffering
-		BASS_ChannelSetSync(chan, BASS_SYNC_STALL, 0, StallSync, 0);
-		// set sync for end of stream
-		BASS_ChannelSetSync(chan, BASS_SYNC_END, 0, EndSync, 0);
-		// play it!
-		BASS_ChannelPlay(chan, FALSE);
+		meta = BASS_ChannelGetTags(chan, BASS_TAG_OGG);
+		if (meta) { // got Icecast/OGG tags
+			const char *artist = NULL, *title = NULL, *p = meta;
+			for (; *p; p += strlen(p) + 1) {
+				if (!_strnicmp(p, "artist=", 7)) // found the artist
+					artist = p + 7;
+				if (!_strnicmp(p, "title=", 6)) // found the title
+					title = p + 6;
+			}
+			if (title) {
+				if (artist) {
+					char text[100];
+					_snprintf(text, sizeof(text), "%s - %s", artist, title);
+					tct_SongName->WriteText(text);
+				}
+				else
+					tct_SongName->WriteText(title);
+			}
+		}
+		else {
+			meta = BASS_ChannelGetTags(chan, BASS_TAG_HLS_EXTINF);
+			if (meta) { // got HLS segment info
+				const char *p = strchr(meta, ',');
+				if (p) tct_SongName->WriteText(p + 1);
+			}
+		}
 	}
 }
 
-INT_PTR Radio::dialogproc(HWND h, UINT m, WPARAM w, LPARAM l)
+void Radio::ChooseRadioStation(wxCommandEvent &evt)
 {
-	return INT_PTR();
+	if (!IsRadioBoxEmpty)
+	{
+		EnterCriticalSection(&lock); // make sure only 1 thread at a time can do the following
+		LeaveCriticalSection(&lock);
+
+		int StationIndex = l_StationList->GetSelection();
+		std::string url = RadioUrls.at(StationIndex);
+
+		BASS_Start();
+		BASS_StreamFree(chan);
+		BASS_Init(-1, 44100, BASS_DEVICE_3D, 0, NULL);
+		chan = BASS_StreamCreateURL((char*)url.c_str(), 0, 0, NULL, 0);
+		EnterCriticalSection(&lock);
+		BASS_ChannelPlay(chan, FALSE);
+		DoMeta();
+
+		evt.Skip();
+	}
+
+}
+
+void Radio::AddUrlToStationList(std::string str)
+{
+	bool CanAddUrl = true;
+	if (RadioUrls.size() == 0)
+	{
+		RadioUrls.push_back(str);
+		CanAddUrl = false;
+	}
+	else
+	{
+		for (size_t i = 0; i < RadioUrls.size(); i++)
+		{
+			if (RadioUrls.at(i).compare(str) == 0)
+			{
+				CanAddUrl = false;
+			}
+		}
+	}
+	
+	/*std::string UrlName;
+	int count = 0;
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		if (str.at(i) == '/')
+		{
+			count++;
+		}
+		if (count == 3)
+		{
+			UrlName = str.substr(0, i);
+			break;
+		}
+	}*/
+
+	if (CanAddUrl) {
+		/*if(count < 3)*/
+		l_StationList->Append(str);
+		/*else
+			l_StationList->Append(UrlName);*/
+		RadioUrls.push_back(str);
+	}
+}
+
+void Radio::UpdateStationList()
+{
+	l_StationList->Clear();
+	for (size_t i = 0; i < RadioUrls.size(); i++)
+	{
+		l_StationList->Append(RadioUrls.at(i));
+	}
+}
+
+void Radio::PauseStation(wxCommandEvent &evt)
+{
+	if (!IsPaused) {
+		BASS_Pause();
+		btn_Pause->SetLabel("Play");
+		IsPaused = true;
+	}
+	else
+	{
+		BASS_Start();
+		btn_Pause->SetLabel("Pause");
+		IsPaused = false;
+	}
+	evt.Skip();
+}
+
+void Radio::ChangeValime(wxCommandEvent & evt)
+{
+	BASS_SetVolume((float)sl_VolumeLevel->GetValue()/100);
+}
+
+void Radio::AddRadioStation(wxCommandEvent & evt)
+{
+	AddUrlToStationList(tct_IcyUrl->GetLineText(0).ToStdString());
+}
+
+void Radio::RemoveRadioStation(wxCommandEvent & evt)
+{
+	if (!IsRadioBoxEmpty)
+	{
+		int StationIndex = l_StationList->GetSelection();
+		RadioUrls.erase(RadioUrls.begin() + StationIndex);
+		UpdateStationList();
+	}
+
 }

@@ -20,6 +20,9 @@ public:
 	wxButton *btn_DisableAlarm = nullptr;
 	wxButton *btn_EditAlarm = nullptr;
 	wxButton *btn_Radio = nullptr;
+	wxButton *btn_NightMode = nullptr;
+	wxRadioButton *btn_Lock = nullptr;
+	wxRadioButton *btn_Unlock = nullptr;
 	ClockDlg *w_clock = nullptr;
 	wxTimer *WxTimer1 = nullptr;
 	wxListBox *l_AlarmList = nullptr;
@@ -29,7 +32,9 @@ public:
 	void AddToAlarmClockList(AlarmClock &);	
 	void UpdateListBox();
 	void DeleteAlarmFromList(AlarmClock &alarm);
+
 	std::vector<AlarmClock*> GetAlarmClockList() const;
+	bool IsNightModeOn;
 
 	wxDECLARE_EVENT_TABLE();
 
@@ -42,7 +47,11 @@ private:
 	void DisableAlarmButtonClicked(wxCommandEvent &evt);
 	void EditAlarmButtonClicked(wxCommandEvent & evt);
 	void RadioButtonClicked(wxCommandEvent & evt);
+	void LockButtons(wxCommandEvent & evt);
+	void UnlockButtons(wxCommandEvent & evt);
+	void NightMode(wxCommandEvent & evt);
 	float ChangeVolume(double nVolume, bool bScalar);
+
 
 };
 

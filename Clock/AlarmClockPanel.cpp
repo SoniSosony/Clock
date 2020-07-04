@@ -1,7 +1,10 @@
 #include "AlarmClockPanel.h"
+#include <wx/wfstream.h>
+#include <string>
 
 wxBEGIN_EVENT_TABLE(AlarmClockPanel, wxFrame)
 	EVT_BUTTON(10004, OnButtonClicked)
+	EVT_BUTTON(10005, OnOpen)
 wxEND_EVENT_TABLE()
 
 AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_ANY, "Alarm", wxPoint(40, 50), wxSize(600, 200))
@@ -9,6 +12,11 @@ AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_
 	wxPanel *panel = new wxPanel(this, -1);
 	wxBoxSizer *BoxSizer = new wxBoxSizer(wxHORIZONTAL);
 	wxBoxSizer *VBoxSizer = new wxBoxSizer(wxVERTICAL);
+
+	tct_SongName = new wxTextCtrl(panel, 10010, wxEmptyString, wxPoint(0, 0), wxSize(400, 20), 0,
+		wxDefaultValidator, wxString("SongName"));
+
+	tct_SongName->SetValue("HelloE:\Music\(Can't Get My) Head Around You.mp3");
 
 	txc_AlarmName = new wxTextCtrl(panel, 10001, wxEmptyString, wxPoint(10,10), wxSize(88, 22), 0, 
 		wxDefaultValidator, wxString("Alarm name"));
@@ -25,6 +33,8 @@ AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_
 	tpc_TimePicker = new wxTimePickerCtrl(panel, 10003, wxDefaultDateTime, wxPoint(0, 0), wxSize(88, 22),
 		wxTP_DEFAULT, wxDefaultValidator, wxString("Alarm time"));
 
+	btn_ChooseSong = new wxButton(panel, 10005, wxT("Choose song"), wxPoint(0, 0), wxSize(88, 26), 0,
+		wxDefaultValidator, wxString("Choose song"));
 	btn_SetAlarm = new wxButton(panel, 10004, wxT("Set alarm"), wxPoint(0,0), wxSize(88, 26), 0, 
 		wxDefaultValidator, wxString("Set alarm"));
 
@@ -33,7 +43,9 @@ AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_
 	VBoxSizer->Add(tpc_TimePicker);
 	VBoxSizer->AddSpacer(5);
 	VBoxSizer->Add(ch_AlarmType);
-	VBoxSizer->AddSpacer(20);
+	VBoxSizer->AddSpacer(5);
+	VBoxSizer->Add(btn_ChooseSong);
+	VBoxSizer->AddSpacer(15);
 	VBoxSizer->Add(btn_SetAlarm);
 
 	cc_DatePicker = new wxCalendarCtrl(panel, 10005, wxDefaultDateTime, wxPoint(0, 0), wxSize(240, 180), 
@@ -43,6 +55,7 @@ AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow) : wxFrame(nullptr, wxID_
 	BoxSizer->Add(VBoxSizer);
 	BoxSizer->AddSpacer(5);
 	BoxSizer->Add(cc_DatePicker);
+	BoxSizer->Add(tct_SongName);
 
 	panel->SetSizer(BoxSizer);
 
@@ -53,6 +66,7 @@ AlarmClockPanel::AlarmClockPanel(clockMain &MainWindow, AlarmClock &alarm)
 	: AlarmClockPanel(MainWindow)
 {
 	txc_AlarmName->SetValue(alarm.GetAlarmName());
+	tct_SongName->SetValue(alarm.GetSongName());
 
 	wxDateTime DateTime = wxDateTime::Now();
 	wxDateTime DateDate = wxDateTime::Today();
@@ -97,10 +111,33 @@ void AlarmClockPanel::OnButtonClicked(wxCommandEvent & evt)
 
 		AlarmClock *alarm = new AlarmClock();
 		alarm->SetAlarmParams(AlarmName, AlarmTime, AlarmDate, AlarmType);
+		if (path != nullptr)
+		{
+			alarm->SetSongName(path->ToStdString());
+		}
 		MainWindow->AddToAlarmClockList(*alarm);
 
 		MainWindow->UpdateListBox();
 		this->Destroy();
 	}
 
+}
+
+void AlarmClockPanel::OnOpen(wxCommandEvent& WXUNUSED(event))
+{
+
+	wxFileDialog
+		openFileDialog(this, _("Open XYZ file"), "", "",
+			"mp3 files (*.mp3)|*.mp3", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return;     
+
+	path = new wxString(openFileDialog.GetPath());
+	tct_SongName->AppendText(*path);
+	wxFileInputStream input_stream(openFileDialog.GetPath());
+	if (!input_stream.IsOk())
+	{
+		wxLogError("Cannot open file '%s'.", openFileDialog.GetPath());
+		return;
+	}
 }

@@ -15,7 +15,11 @@ ClockDlg::ClockDlg(wxWindow *parent, wxWindowID id, const wxString &title, const
 	//CreateGUIControls();
 	wxSize *sizeT = new wxSize();
 	sizeT->Set(400, 400);
+
+	background = wxColour(255, 255, 255);
+	IsDarkModeOn = false;
 	Create(parent, id, position, *sizeT, style, val, name);
+
 }
 
 ClockDlg::~ClockDlg()
@@ -31,6 +35,20 @@ void ClockDlg::CreateGUIControls()
 	WxTimer1 = new wxTimer();
 	WxTimer1->SetOwner(this, ID_WXTIMER1);
 	WxTimer1->Start(200);
+}
+
+void ClockDlg::OnDarkMode()
+{
+	if (!IsDarkModeOn)
+	{
+		background = wxColor(70, 70, 70);
+		IsDarkModeOn = true;
+	}
+	else
+	{
+		background = wxColor(255, 255, 255);
+		IsDarkModeOn = false;
+	}
 }
 
 void ClockDlg::OnClose(wxCloseEvent& /*event*/)
@@ -68,9 +86,9 @@ void ClockDlg::ClockDlgPaint(wxPaintEvent& event)
     wxColour lightblue = wxColour(220, 245, 255);
     wxColour darkblue = wxColour(0, 0, 120);
 
-    // draw lightblue background
-    dc.SetPen(lightblue);
-    dc.SetBrush(lightblue);
+    // draw background
+    dc.SetPen(background);
+    dc.SetBrush(background);
     dc.DrawRectangle(0, 0, sz.x, sz.y);
 
     // draw clock border
@@ -78,7 +96,10 @@ void ClockDlg::ClockDlgPaint(wxPaintEvent& event)
     dc.SetBrush(*wxBLACK_BRUSH);
     dc.DrawCircle(center, radius);
     dc.SetPen(*wxBLACK_PEN);
-    dc.SetBrush(*wxWHITE_BRUSH);
+	if (IsDarkModeOn)
+		dc.SetBrush(*wxGREY_BRUSH);
+	else
+		dc.SetBrush(*wxWHITE_BRUSH);
     dc.DrawCircle(center, toInt(radius - 3.0 * factor));
 
     // paint lines for minutes

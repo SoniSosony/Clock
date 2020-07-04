@@ -2,11 +2,14 @@
 #include <wx/calctrl.h>
 #include <wx/buffer.h>
 #include <Windows.h>
+#include <sstream>
 
 AlarmClock::AlarmClock()
 {
 	AlarmDeactivated = false;
 	WasAlarmedToday = false;
+
+	SongCallName = L"open \"E:\\Music\\(Can't Get My) Head Around You.mp3\" type mpegvideo alias mp3";
 }
 
 AlarmClock::~AlarmClock()
@@ -136,15 +139,14 @@ void AlarmClock::SetAlarmParams(wxString AlarmName, wxDateTime AlarmTime, wxDate
 
 void AlarmClock::OnAlarm()
 {
-	
-	mciSendString(L"open \"E:\\Music\\(Can't Get My) Head Around You.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
+	mciSendString(SongCallName, NULL, 0, NULL);
 	mciSendString(L"play mp3", NULL, 0, NULL);
-
 }
 
 void AlarmClock::OffAlarm()
 {
 	mciSendString(L"stop mp3", NULL, 0, NULL);
+	mciSendString(L"close mp3", NULL, 0, NULL);
 }
 
 void AlarmClock::DeactivateAlarm(bool deactivate = true)
@@ -189,4 +191,18 @@ void AlarmClock::DelayAlarmTime(int Delay)
 	{
 		AlarmTime.SetMinute(minutes + Delay);
 	}
+}
+
+void AlarmClock::SetSongName(std::string str)
+{
+	std::wstringstream wss;
+	wss << "open \"" << str << "\" type mpegvideo alias mp3";
+	wstr.append(wss.str());
+	SongName = str;
+	SongCallName = wstr.c_str();
+}
+
+std::string AlarmClock::GetSongName() const
+{
+	return SongName;
 }

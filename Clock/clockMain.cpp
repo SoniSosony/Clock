@@ -9,8 +9,11 @@ wxBEGIN_EVENT_TABLE(clockMain, wxFrame)
 	EVT_BUTTON(10004, DeleteAlarmButtonClicked)
 	EVT_BUTTON(10005, DisableAlarmButtonClicked)
 	EVT_BUTTON(10006, EditAlarmButtonClicked)
-	EVT_BUTTON(10008, EditAlarmButtonClicked)
+	EVT_BUTTON(10008, RadioButtonClicked)
+	EVT_BUTTON(10011, NightMode)
 	EVT_TIMER(10002, clockMain::WxTimer1Timer)
+	EVT_RADIOBUTTON(10009, LockButtons)
+	EVT_RADIOBUTTON(10010, UnlockButtons)
 wxEND_EVENT_TABLE()
 
 
@@ -18,10 +21,15 @@ clockMain::clockMain() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50
 {
 
 	panel = new wxPanel(this, -1);
+	//panel->SetBackgroundColour(wxColor(*wxBLACK));
 	wxBoxSizer *boxSizer = new wxBoxSizer(wxHORIZONTAL);
+	wxBoxSizer *ClockBoxSizer = new wxBoxSizer(wxVERTICAL);
+	wxGridSizer *LockGridSizer = new wxGridSizer(2, 4, 3, 3);
 	wxPanel *clockPanel = new wxPanel(panel);
 	w_clock = new ClockDlg(clockPanel);
-	boxSizer->Add(clockPanel);
+	boxSizer->Add(ClockBoxSizer);
+	ClockBoxSizer->Add(clockPanel);
+	ClockBoxSizer->Add(LockGridSizer);
 	w_clock->Show(true);
 
 	wxBoxSizer *AlarmBoxSizer = new wxBoxSizer(wxVERTICAL);
@@ -35,6 +43,11 @@ clockMain::clockMain() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50
 	btn_DeleteAlarm = new wxButton(panel, 10004, wxT("Delete alarm"));
 	btn_DisableAlarm = new wxButton(panel, 10005, wxT("Enable/Disable"));
 	btn_EditAlarm = new wxButton(panel, 10006, wxT("Edit alarm"));
+	btn_Lock = new wxRadioButton(panel, 10009, wxString("Lock"), wxPoint(0, 0), wxDefaultSize, 0,
+		wxDefaultValidator, wxString("Lock"));
+	btn_Unlock = new wxRadioButton(panel, 10010, wxString("Unlock"), wxPoint(0, 0), wxDefaultSize, 0,
+		wxDefaultValidator, wxString("Lock"));
+	btn_NightMode = new wxButton(panel, 10011, wxT("On Night mode"));
 
 	wxStaticText *VolumeText = new wxStaticText(panel, wxID_ANY, wxString("Volume"), wxPoint(0,0), 
 		wxSize(40, 30), 0, wxString("Volume level"));
@@ -42,7 +55,11 @@ clockMain::clockMain() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50
 		wxDefaultValidator, wxString("Volume"));
 
 	btn_Radio = new wxButton(panel, 10008, wxT("Radio"));
-	
+
+	LockGridSizer->Add(btn_NightMode);
+	LockGridSizer->Add(btn_Lock);
+	LockGridSizer->Add(btn_Unlock);
+
 	AlarmBoxSizer->Add(l_AlarmList);
 
 	ButtonBoxSizer->Add(btn_AddAlarm);
@@ -64,6 +81,7 @@ clockMain::clockMain() : wxFrame(nullptr, wxID_ANY, "Clock main", wxPoint(40, 50
 
 	panel->SetSizer(boxSizer);
 
+	IsNightModeOn = false;
 }
 
 clockMain::~clockMain()
@@ -140,7 +158,6 @@ void clockMain::WxTimer1Timer(wxTimerEvent & event)
 
 void clockMain::AddAlarmButtonClicked(wxCommandEvent & evt)
 {
-
 	AlarmClockPanel *AlarmPanel = new AlarmClockPanel(*this);
 	AlarmPanel->Show();
 	this->Disable();
@@ -184,8 +201,64 @@ void clockMain::RadioButtonClicked(wxCommandEvent & evt)
 {
 	Radio *radio = new Radio();
 	radio->Show();
-	this->Disable();
 	evt.Skip();
+}
+
+void clockMain::LockButtons(wxCommandEvent & evt)
+{
+
+	btn_AddAlarm->Disable();
+	btn_DeleteAlarm->Disable();
+	btn_DisableAlarm->Disable();
+	btn_EditAlarm->Disable();
+	btn_Radio->Disable();
+	sl_VolumeLevel->Disable();
+}
+
+void clockMain::UnlockButtons(wxCommandEvent & evt)
+{
+	btn_AddAlarm->Enable();
+	btn_DeleteAlarm->Enable();
+	btn_DisableAlarm->Enable();
+	btn_EditAlarm->Enable();
+	btn_Radio->Enable();
+	sl_VolumeLevel->Enable();
+}
+
+void clockMain::NightMode(wxCommandEvent & evt)
+{
+	if (!IsNightModeOn) {
+		SetMinSize(wxSize(416, 462));
+		SetMaxSize(wxSize(416, 462));
+		SetSize(wxSize(416, 462));
+
+		w_clock->OnDarkMode();
+		//this->SetBackgroundColour(wxColor(80, 80, 80));
+
+		btn_NightMode->SetLabel("Off Dark Mode");
+		btn_NightMode->SetBackgroundColour(wxColor(65, 65, 65));
+		btn_NightMode->SetForegroundColour(wxColor(255, 255, 255));
+		btn_Lock->Show(false);
+		btn_Unlock->Show(false);
+
+		IsNightModeOn = true;
+	}
+	else
+	{
+		SetMinSize(wxSize(40, 40));
+		SetMaxSize(wxSize(2000, 1200));
+		SetSize(wxSize(800, 600));
+
+		w_clock->OnDarkMode();
+
+		btn_NightMode->SetLabel("On Night Mode");
+		btn_NightMode->SetBackgroundColour(wxColor(255, 255, 255));
+		btn_NightMode->SetForegroundColour(wxColor(0, 0, 0));
+		btn_Lock->Show(true);
+		btn_Unlock->Show(true);
+
+		IsNightModeOn = false;
+	}
 }
 
 float clockMain::ChangeVolume(double nVolume, bool bScalar)

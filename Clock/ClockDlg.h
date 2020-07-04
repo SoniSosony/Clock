@@ -32,9 +32,12 @@ public:
 	void ClockDlgSize(wxSizeEvent& event);
 	void WxTimer1Timer(wxTimerEvent& event);
 	void RefreshClock();
+	void OnDarkMode();
 
 private:
 	wxTimer *WxTimer1;
+	wxColor background;
+	bool IsDarkModeOn;
 
 private:
 	enum

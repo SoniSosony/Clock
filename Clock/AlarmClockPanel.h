@@ -18,6 +18,8 @@ public:
 	~AlarmClockPanel();
 
 	wxTextCtrl *txc_AlarmName = nullptr;
+	wxTextCtrl *tct_SongName = nullptr;
+	wxButton *btn_ChooseSong = nullptr;
 	wxButton *btn_SetAlarm = nullptr;
 	wxTimePickerCtrl *tpc_TimePicker = nullptr;
 	wxCalendarCtrl *cc_DatePicker = nullptr;
@@ -31,6 +33,9 @@ private:
 	wxArrayString AlarmTypes;
 	clockMain *MainWindow;
 	std::vector<AlarmClock*> AlarmClockList;
+	wxString *path = nullptr;
+
+	void OnOpen(wxCommandEvent& WXUNUSED(event));
 
 
 };

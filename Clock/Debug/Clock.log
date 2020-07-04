@@ -1,1 +1,4 @@
-﻿  Clock.vcxproj -> E:\Projects\C++\Clock\Clock\Debug\Clock.exe
+﻿  AlarmClockPanel.cpp
+e:\projects\c++\clock\clock\clock\alarmclockpanel.cpp(19): warning C4129: 'M': unrecognized character escape sequence
+e:\projects\c++\clock\clock\clock\alarmclockpanel.cpp(19): warning C4129: '(': unrecognized character escape sequence
+  Clock.vcxproj -> E:\Projects\C++\Clock\Clock\Debug\Clock.exe
